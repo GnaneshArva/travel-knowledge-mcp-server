@@ -1,0 +1,568 @@
+Application Name
+travel-knowledge-mcp-server
+Objective
+
+Build an Enterprise-grade Model Context Protocol (MCP) Server named travel-knowledge-mcp-server using the official MCP Python SDK (FastMCP).
+
+The purpose of this project is to demonstrate how enterprise organizations expose Knowledge Retrieval (RAG) as a dedicated MCP capability.
+
+This project is not responsible for ingesting documents.
+
+Knowledge ingestion is handled by a separate application:
+
+travel-knowledge-ingestion
+
+which loads documents into ChromaDB.
+
+This MCP server is responsible only for retrieving knowledge.
+
+The project should emphasize:
+
+Enterprise Architecture
+Clean Architecture
+SOLID Principles
+Strategy Pattern
+Factory Pattern
+Retrieval Pipeline
+Dependency Injection
+Pluggable Retrieval Algorithms
+
+rather than simply querying ChromaDB.
+
+Overall Architecture
+                    travel-knowledge-ingestion
+                               │
+                               ▼
+                           ChromaDB
+                               ▲
+                               │
+                   travel-knowledge-mcp-server
+                               │
+                               ▼
+                    OpenAI Agents SDK
+
+The ingestion pipeline owns indexing.
+
+The MCP server owns retrieval.
+
+Responsibilities
+
+This MCP server must:
+
+expose MCP Tools
+expose MCP Resources
+expose MCP Prompt Templates
+retrieve knowledge
+return structured DTOs
+
+This project must NOT:
+
+perform ingestion
+chunk documents
+generate embeddings
+load PDFs
+update vector database
+
+Those belong to the ingestion project.
+
+Technology Stack
+
+Use exactly:
+
+Python 3.12+
+Official MCP Python SDK
+FastMCP
+Starlette
+Uvicorn
+ChromaDB
+Sentence Transformers
+Pydantic v2
+asyncio
+httpx
+uv package manager
+Architecture Principles
+
+Follow:
+
+Clean Architecture
+SOLID Principles
+Separation of Concerns
+Dependency Injection
+Strategy Pattern
+Factory Pattern
+Retrieval Pipeline Pattern
+Async Programming
+Project Structure
+travel-knowledge-mcp-server/
+
+│
+├── app/
+│
+│   ├── main.py
+│   │
+│   ├── config/
+│   │
+│   ├── dto/
+│   │
+│   ├── services/
+│   │
+│   ├── pipeline/
+│   │
+│   ├── interfaces/
+│   │
+│   ├── factories/
+│   │
+│   ├── strategies/
+│   │      ├── retrieval/
+│   │      ├── vectorstore/
+│   │      ├── reranking/
+│   │      └── query/
+│   │
+│   ├── implementations/
+│   │      └── chromadb/
+│   │
+│   ├── tools/
+│   │
+│   ├── resources/
+│   │
+│   ├── prompts/
+│   │
+│   └── utils/
+│
+├── pyproject.toml
+│
+├── README.md
+│
+└── .env.example
+Retrieval Pipeline
+
+Create a dedicated retrieval pipeline.
+
+User Query
+
+↓
+
+Query Processing Strategy
+
+↓
+
+Retrieval Strategy
+
+↓
+
+Vector Store Strategy
+
+↓
+
+Retrieved Documents
+
+↓
+
+Reranking Strategy
+
+↓
+
+Knowledge DTO
+
+↓
+
+MCP Tool Response
+
+Each stage must be independently replaceable.
+
+Query Processing Strategy
+
+Create interface:
+
+QueryProcessingStrategy
+
+Implement:
+
+DefaultQueryProcessingStrategy
+
+Future implementations:
+
+QueryExpansionStrategy
+
+QueryRewriteStrategy
+
+HyDEStrategy
+
+MultiQueryGenerationStrategy
+
+Only implement the default strategy.
+
+Retrieval Strategy
+
+Use Strategy Pattern.
+
+Create interface:
+
+RetrievalStrategy
+
+Implement:
+
+VectorSimilarityRetrievalStrategy
+
+Document future implementations:
+
+HybridRetrievalStrategy
+
+MetadataFilteredRetrievalStrategy
+
+ParentDocumentRetrievalStrategy
+
+SelfQueryRetrievalStrategy
+
+MultiQueryRetrievalStrategy
+
+GraphRetrievalStrategy
+
+ContextualRetrievalStrategy
+
+Retrieval strategy should never depend directly on ChromaDB APIs.
+
+Vector Store Strategy
+
+Create interface:
+
+VectorStoreStrategy
+
+Implement:
+
+ChromaVectorStoreStrategy
+
+Future implementations:
+
+PineconeVectorStoreStrategy
+
+QdrantVectorStoreStrategy
+
+WeaviateVectorStoreStrategy
+
+PgVectorStrategy
+
+AzureAISearchStrategy
+
+Only Chroma should be implemented.
+
+Reranking Strategy
+
+Create interface:
+
+RerankingStrategy
+
+Implement:
+
+NoOpRerankingStrategy
+
+Document future implementations:
+
+CrossEncoderRerankingStrategy
+
+CohereRerankingStrategy
+
+VoyageRerankingStrategy
+
+RRFStrategy
+
+Initially return retrieved documents without reranking.
+
+Knowledge Service
+
+Business logic belongs only here.
+
+KnowledgeService
+
+↓
+
+RetrievalPipeline
+
+↓
+
+Knowledge DTO
+
+The service should not know which retrieval strategy is used.
+
+Retrieval Pipeline
+
+Create
+
+KnowledgeRetrievalPipeline
+
+Pipeline stages:
+
+Process Query
+
+↓
+
+Retrieve Documents
+
+↓
+
+Rerank
+
+↓
+
+Return DTO
+
+Each stage should invoke strategies.
+
+Dependency Injection
+
+Instantiate dependencies centrally.
+
+Inject:
+
+Query Strategy
+Retrieval Strategy
+Vector Store Strategy
+Reranking Strategy
+
+Avoid creating implementations inside services.
+
+Factory Pattern
+
+Use factories.
+
+Examples:
+
+RetrievalStrategyFactory
+
+VectorStoreFactory
+
+QueryStrategyFactory
+
+RerankingStrategyFactory
+
+Strategies should be selected from configuration.
+
+DTOs
+
+Use Pydantic v2.
+
+Examples:
+
+KnowledgeSearchRequest
+
+KnowledgeSearchResponse
+
+RetrievedDocumentDto
+
+CitationDto
+
+KnowledgeResultDto
+
+Never return dictionaries.
+
+DTOs define MCP contracts.
+
+MCP Tools
+
+Implement exactly three tools.
+
+Tool 1
+search_country_information()
+
+Retrieve destination information.
+
+Tool 2
+search_visa_requirements()
+
+Retrieve visa requirements.
+
+Tool 3
+search_travel_guidelines()
+
+Retrieve travel guidelines.
+
+Each tool:
+
+accepts DTO
+calls KnowledgeService
+returns DTO
+contains no retrieval logic
+MCP Resources
+
+Implement:
+
+knowledge-categories
+
+supported-countries
+
+knowledge-version
+MCP Prompt Templates
+
+Implement:
+
+destination-guide
+
+visa-summary
+
+travel-advisor
+
+Each template should support variables.
+
+Embedding Model
+
+The retrieval server must generate query embeddings using:
+
+Sentence Transformers
+
+Design so future embedding providers can be plugged in.
+
+Examples:
+
+OpenAI
+
+Voyage
+
+Gemini
+
+Cohere
+
+The embedding provider should be configurable.
+
+Configuration
+
+Support:
+
+HOST
+
+PORT
+
+VECTOR_STORE
+
+RETRIEVAL_STRATEGY
+
+QUERY_STRATEGY
+
+RERANKING_STRATEGY
+
+EMBEDDING_PROVIDER
+
+TOP_K
+
+CHROMA_COLLECTION
+
+Changing retrieval behavior should require configuration only.
+
+ChromaDB
+
+Connect to the persistent ChromaDB created by:
+
+travel-knowledge-ingestion
+
+Never create the collection.
+
+Never ingest documents.
+
+Only retrieve.
+
+Async
+
+Use async throughout.
+
+Avoid blocking calls where possible.
+
+Code Style
+
+Use:
+
+type hints
+constructor injection
+meaningful names
+small classes
+single responsibility
+Keep the Design Extensible
+
+The architecture should allow adding without modifying existing code:
+
+Query Strategies
+HyDE
+Query Rewrite
+Multi Query
+Retrieval Strategies
+Hybrid Search
+Parent Document Retrieval
+Metadata Retrieval
+Graph Retrieval
+Vector Stores
+Pinecone
+Qdrant
+Azure AI Search
+Weaviate
+pgvector
+Reranking
+Cross Encoder
+Cohere
+Voyage
+Reciprocal Rank Fusion (RRF)
+Do NOT Include
+Knowledge ingestion
+PDF processing
+Chunking
+Embedding generation for documents
+Vector creation
+Mock JSON data
+Authentication
+Authorization
+Logging frameworks
+Exception hierarchy
+Docker
+Kubernetes
+CI/CD
+Cloud deployment
+Unit tests
+Integration tests
+
+Those topics belong to other repositories or are intentionally excluded to keep the focus on the retrieval architecture.
+
+Documentation
+
+Generate a comprehensive README explaining:
+
+Project overview
+Enterprise Knowledge Retrieval Architecture
+Folder structure
+Retrieval Pipeline
+Strategy Pattern
+Factory Pattern
+Dependency Injection
+DTOs and MCP contracts
+MCP Tools
+MCP Resources
+MCP Prompt Templates
+Query Processing
+Retrieval Strategies
+Vector Store Strategies
+Reranking Strategies
+Configuration
+ChromaDB connection
+Example MCP client interactions
+End-to-end request flow
+Deliverables
+
+Generate a complete runnable project.
+
+The application should run using:
+
+uv sync
+
+uv run python app/main.py
+
+It should connect to the existing ChromaDB instance, generate query embeddings, retrieve relevant documents using the configured retrieval strategy, optionally rerank them, and return structured Pydantic DTOs through MCP Tools.
+
+Learning Goals
+
+By completing this project, the implementation should demonstrate:
+
+Enterprise MCP server architecture for knowledge retrieval
+Separation of ingestion and retrieval into independent services
+Retrieval Pipeline Pattern
+Strategy Pattern for query processing, retrieval, vector stores, and reranking
+Factory Pattern for runtime strategy selection
+Clean Architecture with dependency injection
+Configuration-driven retrieval behavior
+Pydantic DTOs as MCP request/response contracts
+A design that can evolve from simple vector similarity search to advanced enterprise RAG techniques—such as Hybrid Search, Self-Query Retrieval, Parent-Document Retrieval, Multi-Query Retrieval, HyDE, Contextual Retrieval, and Cross-Encoder Reranking—without changing the MCP layer or business services.
